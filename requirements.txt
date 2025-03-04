@@ -57,6 +57,7 @@ pydantic_core==2.27.2
 pydub==0.25.1
 Pygments==2.19.1
 pyht==0.0.28
+pyngrok==7.2.3
 python-dotenv==1.0.1
 python-multipart==0.0.20
 PyYAML==6.0.2
@@ -70,7 +71,7 @@ rpds-py==0.23.1
 sentry-sdk==2.22.0
 shellingham==1.5.4
 sniffio==1.3.1
-sounddevice==0.4.7
+sounddevice==0.5.1
 starlette==0.37.2
 tiktoken==0.7.0
 tokenizers==0.21.0
