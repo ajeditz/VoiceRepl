@@ -20,9 +20,7 @@ from vocode.streaming.models.synthesizer import AzureSynthesizerConfig
 from vocode.streaming.synthesizer.play_ht_synthesizer_v2 import PlayHtSynthesizerV2
 from vocode.streaming.synthesizer.play_ht_synthesizer_v2 import PlayHtSynthesizerConfig
 
-SYNTH_CONFIG=AzureSynthesizerConfig.from_telephone_output_device(
-  voice_name=""
-)
+SYNTH_CONFIG=AzureSynthesizerConfig.from_telephone_output_device()
 
 # SYNTH_CONFIG=PlayHtSynthesizerConfig.from_telephone_output_device(
 #                               api_key=os.getenv("PLAY_HT_API_KEY"),
@@ -244,10 +242,46 @@ async def root(request: Request):
   })
 
 
+# @app.post("/start_outbound_call")
+# async def api_start_outbound_call(to_phone: Optional[str] = Form(None)):
+#   await start_outbound_call(to_phone)
+#   return {"status": "success"}
+
+
 @app.post("/start_outbound_call")
-async def api_start_outbound_call(to_phone: Optional[str] = Form(None)):
-  await start_outbound_call(to_phone)
-  return {"status": "success"}
+async def api_start_outbound_call(
+    request: Request,
+    to_phone: Optional[str] = Form(None)
+):
+    # Get Twilio credentials from headers
+    twilio_account_sid = request.headers.get("X-Twilio-Account-Sid")
+    twilio_auth_token = request.headers.get("X-Twilio-Auth-Token")
+    outbound_caller_number = request.headers.get("X-Outbound-Caller-Number")
+    
+    # Validate that required headers are present
+    if not all([twilio_account_sid, twilio_auth_token, outbound_caller_number]):
+        return {"status": "error", "message": "Missing required Twilio credentials in headers"}
+    
+    # Create a new TwilioConfig with the provided credentials
+    custom_twilio_config = TwilioConfig(
+        account_sid=twilio_account_sid,
+        auth_token=twilio_auth_token,
+    )
+    
+    # Create an outbound call with the custom credentials
+    outbound_call = OutboundCall(
+        base_url=BASE_URL,
+        to_phone=to_phone,
+        from_phone=outbound_caller_number,  # Use the number from headers
+        config_manager=CONFIG_MANAGER,
+        agent_config=AGENT_CONFIG,
+        telephony_config=custom_twilio_config,  # Use the custom config
+        synthesizer_config=SYNTH_CONFIG,
+        transcriber_config=TRANS_CONFIG
+    )
+    await outbound_call.start()
+    
+    return {"status": "success"}
 
 
 @app.post("/start_outbound_zoom")
