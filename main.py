@@ -251,7 +251,10 @@ async def root(request: Request):
 @app.post("/start_outbound_call")
 async def api_start_outbound_call(
     request: Request,
-    to_phone: Optional[str] = Form(None)
+    to_phone: Optional[str] = Form(None),
+    prompt: Optional[str] = Form(None),
+    initial_message: Optional[str] = Form(None)
+    client_name: Optional[str] = Form(None)
 ):
     # Get Twilio credentials from headers
     twilio_account_sid = request.headers.get("X-Twilio-Account-Sid")
@@ -268,21 +271,31 @@ async def api_start_outbound_call(
         auth_token=twilio_auth_token,
     )
     
-    # Create an outbound call with the custom credentials
+    # Create a custom agent config with the provided prompt if available
+    custom_agent_config = ChatGPTAgentConfig(
+        initial_message=BaseMessage(text=initial_message or f"Hi, {client_name}. I will now explain your roadmap, shall we move ahead?"),
+        prompt_preamble=prompt or full_prompt,
+        allow_agent_to_be_cut_off=True,
+        end_conversation_on_goodbye=True,
+        send_filler_audio=False,
+        goodbye_phrases=['bye','goodbye'],
+        interrupt_sensitivity="high"
+    )
+    
+    # Create an outbound call with the custom credentials and agent config
     outbound_call = OutboundCall(
         base_url=BASE_URL,
         to_phone=to_phone,
         from_phone=outbound_caller_number,  # Use the number from headers
         config_manager=CONFIG_MANAGER,
-        agent_config=AGENT_CONFIG,
-        telephony_config=custom_twilio_config,  # Use the custom config
+        agent_config=custom_agent_config,  # Use the custom agent config
+        telephony_config=custom_twilio_config,  # Use the custom twilio config
         synthesizer_config=SYNTH_CONFIG,
         transcriber_config=TRANS_CONFIG
     )
     await outbound_call.start()
     
     return {"status": "success"}
-
 
 @app.post("/start_outbound_zoom")
 async def api_start_outbound_zoom(
